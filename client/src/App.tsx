@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import Game from "./Game";
+// import Game from "./Game";
+import PixiGame from "./PixiGame";
 
 function App() {
   const [isClick, setIsClick] = useState(false);
@@ -14,7 +15,8 @@ function App() {
       >
         게임 시작
       </button>
-      {isClick && <Game />}
+      {/* {isClick && <Game />} */}
+      {isClick && <PixiGame />}
     </>
   );
 }
