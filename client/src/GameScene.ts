@@ -2,17 +2,18 @@ import * as PIXI from "pixi.js";
 import { Socket } from "socket.io-client";
 
 export class GameScene {
+  private edge: number;
   private socket: Socket;
   private app: PIXI.Application;
   public ball: PIXI.Graphics;
   private radius: number;
   private lPaddle: PIXI.Graphics;
   private rPaddle: PIXI.Graphics;
-  private isStart: boolean;
+  private isLeft: boolean | undefined = undefined;
 
   constructor(edge: number, socket: Socket) {
+    this.edge = edge;
     this.socket = socket;
-    this.isStart = false;
 
     this.app = new PIXI.Application({
       view: document.getElementById("pixi-canvas") as HTMLCanvasElement,
@@ -57,15 +58,42 @@ export class GameScene {
   }
 
   gameStart() {}
-  paddleDown() {}
-  paddleUp() {}
 
   getRadius() {
     return this.radius;
   }
 
+  setPlayerPos(playerPos: string) {
+    console.log(playerPos);
+    if (playerPos === "left") {
+      this.isLeft = true;
+    } else {
+      this.isLeft = false;
+    }
+  }
+
   setBallPos(x: number, y: number) {
-    this.ball.x = x;
-    this.ball.y = y;
+    this.ball.x = (x * this.edge) / 600;
+    this.ball.y = (y * this.edge) / 600;
+  }
+
+  setLPaddlePos(y: number) {
+    this.lPaddle.y = (y * this.edge) / 600;
+  }
+
+  setRPaddlePos(y: number) {
+    this.rPaddle.y = (y * this.edge) / 600;
+  }
+
+  paddleUp() {
+    this.socket.emit("upPaddle", {
+      playerIsLeft: this.isLeft,
+    });
+  }
+
+  paddleDown() {
+    this.socket.emit("downPaddle", {
+      playerIsLeft: this.isLeft,
+    });
   }
 }

@@ -17,7 +17,21 @@ export class AppGateway {
   @WebSocketServer()
   server: Server;
 
-  intervalId: NodeJS.Timer;
+  ball: {
+    x: number;
+    y: number;
+  };
+  dx: number;
+  dy: number;
+  lPaddleY: number;
+  rPaddleY: number;
+  constructor() {
+    this.dx = 5;
+    this.dy = 5;
+    this.ball = { x: 0, y: 0 };
+    this.lPaddleY = 0;
+    this.rPaddleY = 0;
+  }
 
   @SubscribeMessage('join')
   startGame(client: Socket) {
@@ -25,45 +39,55 @@ export class AppGateway {
     if (aloneRoom.length === 0) {
       aloneRoom.push(aloneRoom.length.toString());
       client.join(aloneRoom[0]);
-      client.emit('joined', `방(이름: ${aloneRoom[0]}) 입장함`);
+      client.emit('joined', { playerPos: 'left' });
     } else {
       client.join(aloneRoom[0]);
       matchRoom.push(aloneRoom[0]);
       aloneRoom.length = 0;
-      client.emit('joined', `방(이름: ${matchRoom[0]}) 입장함`);
+      client.emit('joined', { playerPos: 'right' });
       this.server.in(matchRoom[0]).emit('areYouReady');
     }
   }
 
+  // 그냥 서버는 무조건 600 600 반지름 10인 공 기준으로 뿌림
   @SubscribeMessage('imReady')
-  handleMessage(
-    client: Socket,
-    payload: { edge: number; radius: number },
-  ): any {
-    const { edge, radius } = payload;
+  handleMessage(client: Socket): any {
+    setInterval(() => {
+      client.emit('pos', {
+        ball: this.ball,
+        left: this.lPaddleY,
+        right: this.rPaddleY,
+      });
+      this.updateBallPos();
+    }, 16);
+  }
 
-    let x = 0;
-    let y = 0;
-    let dx = (edge * 6) / 600;
-    let dy = (edge * 6) / 600;
+  updateBallPos() {
+    this.ball.x += this.dx;
+    this.ball.y += this.dy;
+    if (this.ball.x + this.dx > 290 || this.ball.x + this.dx < -290)
+      this.dx *= -1;
+    if (this.ball.y + this.dy < -290 || this.ball.y + this.dy > 290)
+      this.dy *= -1;
+  }
 
-    // count 어떻게 할지 생각해야 함
-    let count = 3;
-    const intervalId = setInterval(() => {
-      this.server.in(matchRoom[0]).emit('count', { count });
-      count -= 1;
-    }, 1000);
-    setTimeout(() => {
-      this.server.in(matchRoom[0]).emit('count', { count: 0 });
-      clearInterval(intervalId);
-      this.intervalId = setInterval(() => {
-        client.emit('pos', { x: x, y: y });
-        x += dx;
-        y += dy;
-        // 캔버스 중간이 (0,0) 오른쪽이 +x, 위쪽이 +y, 흔히 생각하는 좌표계
-        if (x + dx < -edge / 2 + radius || x + dx > edge / 2 - radius) dx *= -1;
-        if (y + dy < -edge / 2 + radius || y + dy > edge / 2 - radius) dy *= -1;
-      }, 16);
-    }, 4000);
+  @SubscribeMessage('upPaddle')
+  upPaddle(_: Socket, payload: { playerIsLeft: boolean }): any {
+    const { playerIsLeft } = payload;
+    if (playerIsLeft === true) {
+      this.lPaddleY -= 15;
+    } else {
+      this.rPaddleY -= 15;
+    }
+  }
+
+  @SubscribeMessage('downPaddle')
+  downPaddle(_: Socket, payload: { playerIsLeft: boolean }): any {
+    const { playerIsLeft } = payload;
+    if (playerIsLeft === true) {
+      this.lPaddleY += 15;
+    } else {
+      this.rPaddleY += 15;
+    }
   }
 }

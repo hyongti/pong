@@ -15,33 +15,37 @@ function PixiGame(): JSX.Element {
 
     // 게임 방에 입장 요청
     socket.emit("join");
-    // 게임 방에 입장 후 메시지 출력
-    socket.on("joined", console.log);
+
+    // 게임 방에 입장 후 내 포지션(왼쪽 플레이어인지 오른쪽 플레이어인지) 저장
+    socket.on("joined", ({ playerPos }) => {
+      gameScene.setPlayerPos(playerPos);
+    });
 
     // 내 정보 보냄
     socket.on("areYouReady", () => {
       socket.emit("imReady", {
         edge,
-        radius: gameScene.getRadius(),
       });
     });
+
     // 카운트 다운
     socket.on("count", (payload) => {
       setCount(payload.count);
     });
 
-    // 공 포지션
-    socket.on("pos", (pos) => {
-      console.log(pos);
-      gameScene.setBallPos(pos.x, pos.y);
+    // 공, 패들 포지션
+    socket.on("pos", ({ ball, left, right }) => {
+      gameScene.setBallPos(ball.x, ball.y);
+      gameScene.setLPaddlePos(left);
+      gameScene.setRPaddlePos(right);
     });
 
     // 키보드 입력
     window.addEventListener("keydown", (e) => {
       if (e.key === "ArrowDown") {
-        console.log("위 화살표 눌림");
+        gameScene.paddleDown();
       } else if (e.key === "ArrowUp") {
-        console.log("아래 화살표 눌림");
+        gameScene.paddleUp();
       }
     });
   }, []);
