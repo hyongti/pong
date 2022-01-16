@@ -48,6 +48,11 @@ function PixiGame(): JSX.Element {
         gameScene.paddleUp();
       }
     });
+    window.addEventListener("keyup", (e) => {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        gameScene.keyUp();
+      }
+    });
   }, []);
   return (
     <BackgroundDiv>

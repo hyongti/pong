@@ -96,4 +96,10 @@ export class GameScene {
       playerIsLeft: this.isLeft,
     });
   }
+
+  keyUp() {
+    this.socket.emit("keyUp", {
+      playerIsLeft: this.isLeft,
+    });
+  }
 }
