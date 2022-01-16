@@ -7,6 +7,7 @@ import { Server, Socket } from 'socket.io';
 
 const aloneRoom = [];
 const matchRoom = [];
+const readyUser = [];
 
 @WebSocketGateway({
   cors: {
@@ -38,9 +39,10 @@ export class AppGateway {
   };
   dx: number;
   dy: number;
+  winUser: string | undefined;
 
   constructor() {
-    this.dx = 2;
+    this.dx = 5;
     this.dy = 0;
     this.ball = { radius: 10, x: 0, y: 0 };
     this.lPaddle = {
@@ -55,6 +57,7 @@ export class AppGateway {
       y: 0,
       oldYSpeed: 0,
     };
+    this.winUser = undefined;
   }
 
   @SubscribeMessage('join')
@@ -73,18 +76,47 @@ export class AppGateway {
     }
   }
 
-  // 그냥 서버는 무조건 600 600 반지름 10인 공 기준으로 뿌림
-  @SubscribeMessage('imReady')
-  handleMessage(client: Socket): any {
+  @SubscribeMessage('restart')
+  restart(): any {
+    this.server.in(matchRoom[0]).emit('restart');
     this.intervalId = setInterval(() => {
-      client.emit('pos', {
+      this.server.in(matchRoom[0]).emit('pos', {
         ball: this.ball,
         lPaddle: this.lPaddle,
         rPaddle: this.rPaddle,
       });
       this.updateBallVelocity();
       this.updateBallPos();
+      if (this.isGameOver()) {
+        this.server.in(matchRoom[0]).emit('gameOver', this.winUser);
+        clearInterval(this.intervalId);
+        this.reset();
+      }
     }, 16);
+  }
+  // 그냥 서버는 무조건 600 600 반지름 10인 공 기준으로 뿌림
+  // 둘다 준비가 되면
+  @SubscribeMessage('imReady')
+  sendGameInfo(client: Socket): any {
+    if (readyUser.length !== 2) {
+      readyUser.push(client);
+    }
+    if (readyUser.length === 2) {
+      this.intervalId = setInterval(() => {
+        this.server.in(matchRoom[0]).emit('pos', {
+          ball: this.ball,
+          lPaddle: this.lPaddle,
+          rPaddle: this.rPaddle,
+        });
+        this.updateBallVelocity();
+        this.updateBallPos();
+        if (this.isGameOver()) {
+          this.server.in(matchRoom[0]).emit('gameOver', this.winUser);
+          clearInterval(this.intervalId);
+          this.reset();
+        }
+      }, 16);
+    }
   }
 
   updateBallPos() {
@@ -135,6 +167,34 @@ export class AppGateway {
   isCollidedWithWall() {
     if (this.ball.y + this.dy < -290 || this.ball.y + this.dy > 290)
       return true;
+  }
+
+  isGameOver() {
+    if (this.ball.x < -290) {
+      this.winUser = 'left';
+      return true;
+    } else if (this.ball.x > 290) {
+      this.winUser = 'right';
+      return true;
+    }
+  }
+
+  reset() {
+    this.dx = this.winUser === 'left' ? 5 : -5;
+    this.dy = 0;
+    this.ball = { radius: 10, x: 0, y: 0 };
+    this.lPaddle = {
+      width: 20,
+      height: 120,
+      y: 0,
+      oldYSpeed: 0,
+    };
+    this.rPaddle = {
+      width: 20,
+      height: 120,
+      y: 0,
+      oldYSpeed: 0,
+    };
   }
 
   @SubscribeMessage('upPaddle')

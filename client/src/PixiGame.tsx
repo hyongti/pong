@@ -4,9 +4,13 @@ import styled from "styled-components";
 import { GameScene } from "./GameScene";
 
 function PixiGame(): JSX.Element {
+  const [isOver, setIsOver] = useState(false);
   const [count, setCount] = useState<number | null>(null);
   const [socket] = useState<Socket>(io("http://localhost:8000"));
 
+  const handleClick = () => {
+    socket.emit("restart");
+  };
   useEffect(() => {
     const edge: number = Math.min(window.innerWidth, window.innerHeight);
 
@@ -23,9 +27,7 @@ function PixiGame(): JSX.Element {
 
     // 내 정보 보냄
     socket.on("areYouReady", () => {
-      socket.emit("imReady", {
-        edge,
-      });
+      socket.emit("imReady");
     });
 
     // 카운트 다운
@@ -35,9 +37,20 @@ function PixiGame(): JSX.Element {
 
     // 공, 패들 포지션
     socket.on("pos", ({ ball, lPaddle, rPaddle }) => {
-      gameScene.setBallPos(ball.x, ball.y);
-      gameScene.setLPaddlePos(lPaddle.y);
-      gameScene.setRPaddlePos(rPaddle.y);
+      if (isOver === false) {
+        gameScene.setBallPos(ball.x, ball.y);
+        gameScene.setLPaddlePos(lPaddle.y);
+        gameScene.setRPaddlePos(rPaddle.y);
+      }
+    });
+
+    socket.on("gameOver", (msg) => {
+      console.log(msg);
+      setIsOver(true);
+    });
+
+    socket.on("restart", () => {
+      setIsOver(false);
     });
 
     // 키보드 입력
@@ -57,6 +70,14 @@ function PixiGame(): JSX.Element {
   return (
     <BackgroundDiv>
       <CountDiv>{count === null ? "대기 중" : count}</CountDiv>
+      {isOver && (
+        <button
+          style={{ position: "absolute", left: "50%", top: "50%" }}
+          onClick={handleClick}
+        >
+          다시 시작
+        </button>
+      )}
       <canvas id="pixi-canvas" />
     </BackgroundDiv>
   );
