@@ -17,20 +17,41 @@ export class AppGateway {
   @WebSocketServer()
   server: Server;
 
+  // 게임 관련 정보
   ball: {
+    radius: number;
     x: number;
     y: number;
   };
+  lPaddle: {
+    width: number;
+    height: number;
+    y: number;
+  };
+  rPaddle: {
+    width: number;
+    height: number;
+    y: number;
+  };
+
   dx: number;
   dy: number;
-  lPaddleY: number;
   rPaddleY: number;
+
   constructor() {
     this.dx = 5;
     this.dy = 5;
-    this.ball = { x: 0, y: 0 };
-    this.lPaddleY = 0;
-    this.rPaddleY = 0;
+    this.ball = { radius: 10, x: 0, y: 0 };
+    this.lPaddle = {
+      width: 20,
+      height: 120,
+      y: 0,
+    };
+    this.rPaddle = {
+      width: 20,
+      height: 120,
+      y: 0,
+    };
   }
 
   @SubscribeMessage('join')
@@ -55,8 +76,8 @@ export class AppGateway {
     setInterval(() => {
       client.emit('pos', {
         ball: this.ball,
-        left: this.lPaddleY,
-        right: this.rPaddleY,
+        lPaddle: this.lPaddle,
+        rPaddle: this.rPaddle,
       });
       this.updateBallPos();
     }, 16);
@@ -74,20 +95,32 @@ export class AppGateway {
   @SubscribeMessage('upPaddle')
   upPaddle(_: Socket, payload: { playerIsLeft: boolean }): any {
     const { playerIsLeft } = payload;
-    if (playerIsLeft === true) {
-      this.lPaddleY -= 15;
-    } else {
-      this.rPaddleY -= 15;
+    if (
+      playerIsLeft === true &&
+      this.lPaddle.y - this.lPaddle.height / 2 > -300
+    ) {
+      this.lPaddle.y -= 15;
+    } else if (
+      playerIsLeft === false &&
+      this.rPaddle.y - this.rPaddle.height / 2 > -300
+    ) {
+      this.rPaddle.y -= 15;
     }
   }
 
   @SubscribeMessage('downPaddle')
   downPaddle(_: Socket, payload: { playerIsLeft: boolean }): any {
     const { playerIsLeft } = payload;
-    if (playerIsLeft === true) {
-      this.lPaddleY += 15;
-    } else {
-      this.rPaddleY += 15;
+    if (
+      playerIsLeft === true &&
+      this.lPaddle.y + this.lPaddle.height / 2 < 300
+    ) {
+      this.lPaddle.y += 15;
+    } else if (
+      playerIsLeft === false &&
+      this.rPaddle.y + this.rPaddle.height / 2 < 300
+    ) {
+      this.rPaddle.y += 15;
     }
   }
 }

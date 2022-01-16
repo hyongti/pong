@@ -23,7 +23,7 @@ export class GameScene {
       antialias: true,
     });
 
-    const paddleX = (edge * 15) / 600;
+    const paddleX = (edge * 20) / 600;
     const paddleY = (edge * 120) / 600;
 
     // 왼쪽 패들

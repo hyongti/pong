@@ -34,10 +34,10 @@ function PixiGame(): JSX.Element {
     });
 
     // 공, 패들 포지션
-    socket.on("pos", ({ ball, left, right }) => {
+    socket.on("pos", ({ ball, lPaddle, rPaddle }) => {
       gameScene.setBallPos(ball.x, ball.y);
-      gameScene.setLPaddlePos(left);
-      gameScene.setRPaddlePos(right);
+      gameScene.setLPaddlePos(lPaddle.y);
+      gameScene.setRPaddlePos(rPaddle.y);
     });
 
     // 키보드 입력
